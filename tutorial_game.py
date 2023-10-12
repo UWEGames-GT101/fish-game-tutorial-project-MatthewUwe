@@ -12,6 +12,19 @@ def isInside(sprite, mouse_x, mouse_y) -> bool:
     return False
 
 
+def isNear(sprite, mouse_x, mouse_y) -> bool:
+    bounds = sprite.getWorldBounds()
+
+    distx = abs(mouse_x - (bounds.v2.x - bounds.v1.x))
+    disty = abs(mouse_y - (bounds.v3.y - bounds.v1.y))
+    dist = ((distx**2) + (disty**2)**0.5)
+
+    if dist <= 300:
+        return True
+
+    return False
+
+
 class MyASGEGame(pyasge.ASGEGame):
     """
     The main game class
@@ -56,8 +69,9 @@ class MyASGEGame(pyasge.ASGEGame):
         self.initScoreboard()
 
         # This is a comment
-        self.fish = pyasge.Sprite()
+        self.fish = [pyasge.Sprite() for _ in range(3)]
         self.initFish()
+        self.fishacc = 30
 
     def initBackground(self) -> bool:
         if self.data.background.loadTexture("/data/images/background.png"):
@@ -67,13 +81,15 @@ class MyASGEGame(pyasge.ASGEGame):
             return False
 
     def initFish(self) -> bool:
-        if self.fish.loadTexture("/data/images/kenney_fishpack/fishTile_073.png"):
-            self.fish.z_order = 1
-            self.fish.scale = 1
-            self.spawn()
-            return True
+        for fish in self.fish:
+            if fish.loadTexture("/data/images/kenney_fishpack/fishTile_073.png"):
+                fish.z_order = 1
+                fish.scale = 1
+                self.spawn(fish)
 
-        return False
+            else:
+                return False
+        return True
 
     def initScoreboard(self) -> None:
         self.scoreboard = pyasge.Text(self.data.fonts["MainFont"])
@@ -102,10 +118,11 @@ class MyASGEGame(pyasge.ASGEGame):
     def clickHandler(self, event: pyasge.ClickEvent) -> None:
         if event.action == pyasge.MOUSE.BUTTON_PRESSED and \
            event.button == pyasge.MOUSE.MOUSE_BTN1:
-            if isInside(self.fish, event.x, event.y):
-                self.data.score += 1
-                self.scoreboard.string = str(self.data.score).zfill(6)
-                self.spawn()
+            for fish in self.fish:
+                if isInside(fish, event.x, event.y):
+                    self.data.score += 1
+                    self.scoreboard.string = str(self.data.score).zfill(6)
+                    self.spawn(fish)
 
     def keyHandler(self, event: pyasge.KeyEvent) -> None:
         if event.action == pyasge.KEYS.KEY_PRESSED:
@@ -126,14 +143,14 @@ class MyASGEGame(pyasge.ASGEGame):
                 if self.menu_option == 0:
                     self.menu = False
                 else:
-                    self.signalExit()
+                    self.signal_exit()
 
-    def spawn(self) -> None:
-        x = random.randint(0, self.data.game_res[0] - self.fish.width)
-        y = random.randint(0, self.data.game_res[1] - self.fish.height)
+    def spawn(self, fish) -> None:
+        x = random.randint(0, self.data.game_res[0] - fish.width)
+        y = random.randint(0, self.data.game_res[1] - fish.height)
 
-        self.fish.x = x
-        self.fish.y = y
+        fish.x = x
+        fish.y = y
 
     def update(self, game_time: pyasge.GameTime) -> None:
 
@@ -158,7 +175,8 @@ class MyASGEGame(pyasge.ASGEGame):
             self.data.renderer.render(self.exit_option)
         else:
             self.data.renderer.render(self.scoreboard)
-            self.data.renderer.render(self.fish)
+            for fish in self.fish:
+                self.data.renderer.render(fish)
 
 
 def main():
@@ -173,8 +191,8 @@ def main():
     settings = pyasge.GameSettings()
     settings.window_width = 1600
     settings.window_height = 900
-    settings.fixed_ts = 60
-    settings.fps_limit = 60
+    settings.fixed_ts = 24
+    settings.fps_limit = 24
     settings.window_mode = pyasge.WindowMode.BORDERLESS_WINDOW
     settings.vsync = pyasge.Vsync.ADAPTIVE
     game = MyASGEGame(settings)
